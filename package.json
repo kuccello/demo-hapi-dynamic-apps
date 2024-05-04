@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "demo:build": "cd ./assets && sh prepare-apps.sh",
+    "demo:start:isolated": "PORT=10000 node ./assets/demo-app/.next/standalone/server.js",
     "dev:start": "ts-node src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,8 +13,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hapi/h2o2": "^10.0.4",
     "@hapi/hapi": "^21.3.9",
+    "pm2": "^5.3.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "uuid": "^9.0.1"
   }
 }
