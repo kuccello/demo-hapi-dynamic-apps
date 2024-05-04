@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "demo:build": "cd ./assets && sh prepare-apps.sh",
+    "demo:build": "sh ./assets/prepare-apps.sh",
     "demo:start:isolated": "PORT=10000 node ./assets/demo-app/.next/standalone/server.js",
     "dev:start": "ts-node src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
