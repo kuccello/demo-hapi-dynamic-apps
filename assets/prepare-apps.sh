@@ -24,6 +24,18 @@ do
     cp -r ./public ./.next/standalone
     cp -r ./.next/static ./.next/standalone/.next/static
 
+    # Get the directory name from the path
+    dir_name=$(basename $dir)
+
+    # Check if the directory name is __dynamic-add-app
+    if [ "$dir_name" = "__dynamic-add-app" ]; then
+      # Create the filename for the zip file
+      zip_file="$HOME/_ck__dynamic-add-app_v0.1.0.zip"
+
+      # Make a zip of the app for testing
+      zip -r $zip_file ./.next/standalone
+    fi
+
     # Go back to the parent directory
     cd ../..
   fi

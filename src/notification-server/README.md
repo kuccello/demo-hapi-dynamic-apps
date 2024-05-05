@@ -1,0 +1,1 @@
+The notification server is a separate server responsible for receiving application bundles, unpacking them to the right location and sending an http request to register the application with WRS. This allows for a separate process to manage expensive file operations.

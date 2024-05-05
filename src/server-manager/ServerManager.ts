@@ -19,31 +19,40 @@ export class ServerManager {
     private port: number = 3000,
     private host: string = "localhost",
     private appManager: AppManager,
-    private exposeHealthCheck: boolean = false
+    private exposeHealthCheck: boolean = false,
+    enablePerformanceLogging: boolean = true
   ) {
     this.server = new Hapi.Server<Hapi.ServerApplicationState>({
       port,
       host,
     });
-    // Maybe if we want to be selective about which methods to time, we could do something like this:
-    // const methodsToTime = [
-    //   'init', 'registerApplicationVersion', 'registerAppHandlerRoute', 'mapUri', 'preMethod',
-    //   'performHealthCheck', 'healthCheckHandler', 'registerAppHealthCheckRoute', 'performHealthCheck',
-    //   'registerAppRoute', 'respondWithError', 'respondWithSuccess', 'restartExistingApp',
-    //   'startAndRegisterNewApp', 'startApp', 'manageApp', 'checkForConflicts', 'logRoutes',
-    //   'getAppStatuses', 'getAppStatus', 'registerHealthCheckRoute', 'connectAndManageApps'
-    // ];
-    // Or maybe even pass in a list of methods to time as a parameter to the constructor?
 
-    // For now, we'll just time all methods
-    const methodsToTime = Object.getOwnPropertyNames(ServerManager.prototype)
-      .filter(name => typeof (ServerManager.prototype as any)[name] === 'function' && name !== 'constructor');
+    if (enablePerformanceLogging) {
+      // Maybe if we want to be selective about which methods to time, we could do something like this:
+      const methodsToTime = [
+        'init', 'registerApplicationVersion', 'registerAppHandlerRoute', 'mapUri', 'preMethod',
+        'performHealthCheck', 'healthCheckHandler', 'registerAppHealthCheckRoute', 'performHealthCheck',
+        'registerAppRoute', 'respondWithError', 'respondWithSuccess', 'restartExistingApp',
+        'startAndRegisterNewApp', 'startApp', 'manageApp', 'checkForConflicts', 'logRoutes',
+        'getAppStatuses', 'getAppStatus', 'registerHealthCheckRoute', 'connectAndManageApps'
+      ];
+      // Or maybe even pass in a list of methods to time as a parameter to the constructor?
 
-    // Wrap selected methods with timing
-    for (const methodName of methodsToTime) {
-      const originalMethod = (this as any)[methodName];
-      if (typeof originalMethod === 'function') {
-        (this as any)[methodName] = (...args: any[]) => timedMethod(originalMethod.bind(this), this.logger, ...args);
+      // const methodsToTime = Object.getOwnPropertyNames(
+      //   ServerManager.prototype
+      // ).filter(
+      //   (name) =>
+      //     typeof (ServerManager.prototype as any)[name] === "function" &&
+      //     name !== "constructor"
+      // );
+
+      // Wrap selected methods with timing
+      for (const methodName of methodsToTime) {
+        const originalMethod = (this as any)[methodName];
+        if (typeof originalMethod === "function") {
+          (this as any)[methodName] = (...args: any[]) =>
+            timedMethod(originalMethod.bind(this), this.logger, ...args);
+        }
       }
     }
   }
@@ -65,7 +74,9 @@ export class ServerManager {
     this.registerAppRoute();
 
     await this.server.start();
-    this.logger.info(`Server running on ${this.server.info.uri}`, ["method:ServerManager#init"]);
+    this.logger.info(`Server running on ${this.server.info.uri}`, [
+      "method:ServerManager#init",
+    ]);
   }
 
   /**
@@ -92,6 +103,7 @@ export class ServerManager {
     newApp: AppDefinition,
     apps: AppDefinition[]
   ) {
+    // TODO: Add safe guards to prevent conflicts on path
     this.server.route({
       method: "*",
       path: `${newApp.path}/{any*}`,
@@ -170,7 +182,9 @@ export class ServerManager {
       }
     }
     if (!app) {
-      this.logger.error(`App ${newApp.name} not found`, ["method:ServerManager#preMethod"]);
+      this.logger.error(`App ${newApp.name} not found`, [
+        "method:ServerManager#preMethod",
+      ]);
       return h.redirect("/error").takeover().code(404);
     }
     return this.performHealthCheck(app, h);
@@ -186,7 +200,9 @@ export class ServerManager {
     return new Promise((resolve, reject) => {
       pm2.describe(app.name, (err, processDescription) => {
         if (err) {
-          this.logger.error(`${err}`, ["method:ServerManager#performHealthCheck"]);
+          this.logger.error(`${err}`, [
+            "method:ServerManager#performHealthCheck",
+          ]);
           reject(err);
         } else {
           if (processDescription[0]?.pm2_env?.status !== "online") {
@@ -228,7 +244,9 @@ export class ServerManager {
     h: Hapi.ResponseToolkit,
     newApp: AppDefinition
   ) {
-    this.logger.info(`Health check for app ${newApp.name} requested.`, ["method:ServerManager#healthCheckHandler"]);
+    this.logger.info(`Health check for app ${newApp.name} requested.`, [
+      "method:ServerManager#healthCheckHandler",
+    ]);
     const appStatus = await this.getAppStatus(newApp);
     return h
       .response({
@@ -248,7 +266,9 @@ export class ServerManager {
     return new Promise((resolve, reject) => {
       pm2.connect((err) => {
         if (err) {
-          this.logger.error(`${err}`, ["method:ServerManager#connectAndManageApps"])
+          this.logger.error(`${err}`, [
+            "method:ServerManager#connectAndManageApps",
+          ]);
           process.exit(2);
         }
 
@@ -303,7 +323,9 @@ export class ServerManager {
     });
     this.logRoutes();
     this.checkForConflicts(app, apps);
-    this.logger.info(`Registering app ${app.name}`, ["method:ServerManager#manageApp"]);
+    this.logger.info(`Registering app ${app.name}`, [
+      "method:ServerManager#manageApp",
+    ]);
     this.registerApplicationVersion(app, apps);
   }
 
@@ -411,7 +433,10 @@ export class ServerManager {
     return new Promise<AppStatus>((resolve, reject) => {
       pm2.describe(app.name, (err, processDescription) => {
         if (err) {
-          this.logger.error(`${err}`, ["method:ServerManager#getAppStatus", `app:${app.name}`]);
+          this.logger.error(`${err}`, [
+            "method:ServerManager#getAppStatus",
+            `app:${app.name}`,
+          ]);
           reject(err);
         } else {
           // Add the status of the app to the appStatuses array
@@ -428,16 +453,17 @@ export class ServerManager {
   }
 
   /**
-    * Registers the "/register-app" route on the server.
-    * This route handles the registration of a new app.
-    * @private
-    */
+   * Registers the "/register-app" route on the server.
+   * This route handles the registration of a new app.
+   * @private
+   */
   private registerAppRoute() {
     this.server.route({
       method: "POST",
       path: "/register-app",
       handler: async (request, h) => {
-        const tags = ["method:ServerManager#registerAppRoute"]
+        const tags = ["method:ServerManager#registerAppRoute"];
+        this.logger.debug(`Registering app...${JSON.stringify(request.payload)}`, tags);
         const newApp = request.payload as AppDefinition;
         if (!newApp) {
           this.logger.error("Invalid app definition", tags);
@@ -489,7 +515,7 @@ export class ServerManager {
     message: string,
     statusCode: number
   ) {
-    this.logger.error(message, [`statusCode:${statusCode}`,"response:error"]);
+    this.logger.error(message, [`statusCode:${statusCode}`, "response:error"]);
     return h
       .response({
         status: "error",
@@ -526,7 +552,7 @@ export class ServerManager {
     h: Hapi.ResponseToolkit,
     existingApp: AppDefinition
   ) {
-    this.logger.info(`Restarting app ${existingApp.name}`, ['pm2'])
+    this.logger.info(`Restarting app ${existingApp.name}`, ["pm2"]);
     return new Promise((resolve, reject) => {
       pm2.restart(existingApp.name, (err) => {
         if (err) {
@@ -565,7 +591,7 @@ export class ServerManager {
     newApp: AppDefinition,
     apps: AppDefinition[]
   ) {
-    this.logger.info(`Starting app ${newApp.name}`, ['pm2'])
+    this.logger.info(`Starting app ${newApp.name}`, ["pm2"]);
     return new Promise((resolve, reject) => {
       pm2.start(
         {
@@ -582,7 +608,7 @@ export class ServerManager {
               `app:${newApp.name}`,
               "method:ServerManager#startAndRegisterNewApp",
               "pm2",
-              "start"
+              "start",
             ]);
             resolve(this.respondWithError(h, "Failed to start app", 500));
           }

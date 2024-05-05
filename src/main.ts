@@ -40,10 +40,15 @@ const logger = new ConfigurableWrappedLogger(
 logger.toggleObfuscation(false)
 const fileManager = new FileManager(
   logger,
-  path.resolve(__dirname, "../assets")
+  path.resolve(__dirname, "../assets"),
+  undefined,
+  false
 );
-const portScanner = createTimedProxy(new PortScanner(logger, 7000, 7100, false), logger);
-const appManager = createTimedProxy(new AppManager(logger, fileManager, portScanner, false), logger);
-const serverManager = createTimedProxy(new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true'), logger);
+const portScanner = new PortScanner(logger, 7000, 7100, false);
+const appManager = new AppManager(logger, fileManager, portScanner, false);
+const serverManager = new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true', false);
+// const portScanner = createTimedProxy(new PortScanner(logger, 7000, 7100, false), logger);
+// const appManager = createTimedProxy(new AppManager(logger, fileManager, portScanner, false), logger);
+// const serverManager = createTimedProxy(new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true'), logger);
 // createTimedProxy(this, logger)
 serverManager.init();

@@ -7,6 +7,7 @@
     "demo:build": "sh ./assets/prepare-apps.sh",
     "demo:start:isolated": "PORT=10000 node ./assets/demo-app/.next/standalone/server.js",
     "dev:start": "ts-node src/main.ts",
+    "dev:start:notification-server": "ts-node src/notification-server/main.ts",
     "dev:start:health-exposed": "EXPOSE_HEALTHCHECK=true ts-node src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,15 +17,19 @@
   "dependencies": {
     "@hapi/h2o2": "^10.0.4",
     "@hapi/hapi": "^21.3.9",
+    "extract-zip": "^2.0.1",
     "js-yaml": "^4.1.0",
+    "node-fetch": "^3.3.2",
     "pm2": "^5.3.1",
     "semver": "^7.6.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
+    "unzipper": "^0.11.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/semver": "^7.5.8"
+    "@types/semver": "^7.5.8",
+    "@types/unzipper": "^0.10.9"
   }
 }
