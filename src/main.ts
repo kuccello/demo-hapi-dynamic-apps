@@ -7,6 +7,7 @@ import { PortScanner } from "./port-scanner/PortScanner";
 import { ServerManager } from "./server-manager/ServerManager";
 import path from "path";
 import os from 'os';
+import { createTimedProxy } from "./performance/utils";
 
 process.on("unhandledRejection", (err) => {
   console.error({logger: 'process', hostname: os.hostname(), log: {type:['exception','error'], tags: ['unhandled','process','wrs'], message: `${err}`}});
@@ -32,7 +33,7 @@ const logger = new ConfigurableWrappedLogger(
         console.debug(`{"logger": "server", "hostname":"${os.hostname()}", log: ${message}`)
       },
   } as Logger,
-  LogLevel.INFO,
+  LogLevel.DEBUG,
   new SensitiveDataObfuscator(),
   ["wrs","server"]
 );
@@ -41,7 +42,8 @@ const fileManager = new FileManager(
   logger,
   path.resolve(__dirname, "../assets")
 );
-const portScanner = new PortScanner(logger, 7000, 7100);
-const appManager = new AppManager(logger, fileManager, portScanner);
-const serverManager = new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true');
+const portScanner = createTimedProxy(new PortScanner(logger, 7000, 7100, false), logger);
+const appManager = createTimedProxy(new AppManager(logger, fileManager, portScanner, false), logger);
+const serverManager = createTimedProxy(new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true'), logger);
+// createTimedProxy(this, logger)
 serverManager.init();

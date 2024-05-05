@@ -1,5 +1,6 @@
-import net from 'net';
-import { Logger } from '../logger/types';
+import net from "net";
+import { Logger } from "../logger/types";
+import { timedMethod } from "../performance/utils";
 
 /**
  * Represents a PortScanner that scans for open ports within a specified range.
@@ -19,9 +20,33 @@ export class PortScanner {
    * @param startPort The starting port number of the scan range.
    * @param endPort The ending port number of the scan range.
    */
-  constructor(private logger: Logger, startPort: number, endPort: number) {
+  constructor(
+    private logger: Logger,
+    startPort: number,
+    endPort: number,
+    enablePerformanceLogging: boolean = true
+  ) {
     this.startPort = startPort;
     this.endPort = endPort;
+
+    if (enablePerformanceLogging) {
+      const methodsToTime = Object.getOwnPropertyNames(
+        PortScanner.prototype
+      ).filter(
+        (name) =>
+          typeof (PortScanner.prototype as any)[name] === "function" &&
+          name !== "constructor"
+      );
+
+      // Wrap selected methods with timing
+      for (const methodName of methodsToTime) {
+        const originalMethod = (this as any)[methodName];
+        if (typeof originalMethod === "function") {
+          (this as any)[methodName] = (...args: any[]) =>
+            timedMethod(originalMethod.bind(this), this.logger, ...args);
+        }
+      }
+    }
   }
 
   /**
@@ -33,11 +58,11 @@ export class PortScanner {
     return new Promise((resolve) => {
       const server = net.createServer();
 
-      server.once('error', () => {
+      server.once("error", () => {
         resolve(false);
       });
 
-      server.once('listening', () => {
+      server.once("listening", () => {
         server.close();
         resolve(true);
       });
@@ -52,16 +77,19 @@ export class PortScanner {
    */
   public async scanForOpenPorts(): Promise<number[]> {
     const openPorts: number[] = [];
-    this.logger.info(`Scanning for open ports between ${this.startPort} and ${this.endPort}...`, ['port-scanner'])
+    this.logger.info(
+      `Scanning for open ports between ${this.startPort} and ${this.endPort}...`,
+      ["port-scanner"]
+    );
     for (let port = this.startPort; port <= this.endPort; port++) {
-      this.logger.debug(`Checking port ${port}...`, ['port-scanner']);
+      this.logger.debug(`Checking port ${port}...`, ["port-scanner"]);
       const isOpen = await this.checkPortIsAvailable(port);
       if (isOpen) {
-        this.logger.debug(`Port ${port} is open`, ['port-scanner']);
+        this.logger.debug(`Port ${port} is open`, ["port-scanner"]);
         openPorts.push(port);
       }
     }
-    this.logger.info(`Found ${openPorts.length} open ports.`, ['port-scanner']);
+    this.logger.info(`Found ${openPorts.length} open ports.`, ["port-scanner"]);
 
     return openPorts;
   }

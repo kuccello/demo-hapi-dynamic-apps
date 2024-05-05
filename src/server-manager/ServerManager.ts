@@ -6,6 +6,7 @@ import { Logger } from "../logger/types";
 import * as pmUtils from "../process-manager/utils";
 import { AppManager } from "../app-manager/AppManager";
 import type { AppDefinition } from "../process-manager/types";
+import { timedMethod } from "../performance/utils";
 
 /**
  * Manages the server and its applications.
@@ -24,6 +25,27 @@ export class ServerManager {
       port,
       host,
     });
+    // Maybe if we want to be selective about which methods to time, we could do something like this:
+    // const methodsToTime = [
+    //   'init', 'registerApplicationVersion', 'registerAppHandlerRoute', 'mapUri', 'preMethod',
+    //   'performHealthCheck', 'healthCheckHandler', 'registerAppHealthCheckRoute', 'performHealthCheck',
+    //   'registerAppRoute', 'respondWithError', 'respondWithSuccess', 'restartExistingApp',
+    //   'startAndRegisterNewApp', 'startApp', 'manageApp', 'checkForConflicts', 'logRoutes',
+    //   'getAppStatuses', 'getAppStatus', 'registerHealthCheckRoute', 'connectAndManageApps'
+    // ];
+    // Or maybe even pass in a list of methods to time as a parameter to the constructor?
+
+    // For now, we'll just time all methods
+    const methodsToTime = Object.getOwnPropertyNames(ServerManager.prototype)
+      .filter(name => typeof (ServerManager.prototype as any)[name] === 'function' && name !== 'constructor');
+
+    // Wrap selected methods with timing
+    for (const methodName of methodsToTime) {
+      const originalMethod = (this as any)[methodName];
+      if (typeof originalMethod === 'function') {
+        (this as any)[methodName] = (...args: any[]) => timedMethod(originalMethod.bind(this), this.logger, ...args);
+      }
+    }
   }
 
   /**

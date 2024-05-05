@@ -1,5 +1,6 @@
 import { FileManager } from "../file-manager/FileManager";
 import { Logger } from "../logger/types";
+import { timedMethod } from "../performance/utils";
 import { PortScanner } from "../port-scanner/PortScanner";
 import { AppDefinition } from "../process-manager/types";
 
@@ -15,9 +16,28 @@ export class AppManager {
    * @param fileManager The FileManager instance used for managing files.
    * @param portScanner The PortScanner instance used for scanning open ports.
    */
-  constructor(private logger: Logger, fileManager: FileManager, portScanner: PortScanner) {
+  constructor(private logger: Logger, fileManager: FileManager, portScanner: PortScanner, enablePerformanceLogging: boolean = true) {
     this.fileManager = fileManager;
     this.portScanner = portScanner;
+
+    if (enablePerformanceLogging) {
+      const methodsToTime: string[] = [
+        'getAppDefinitions',
+      ];
+      // const excludeList = ['appConfigs.entries', 'appConfigs'];
+      // const methodsToTime = Object.getOwnPropertyNames(AppManager.prototype)
+      //   .filter(name => typeof (AppManager.prototype as any)[name] === 'function' && name !== 'constructor')
+      //   .filter(name => !excludeList.includes(name));
+
+      // Wrap selected methods with timing
+      for (const methodName of methodsToTime) {
+        const originalMethod = (this as any)[methodName];
+        if (typeof originalMethod === 'function') {
+          (this as any)[methodName] = (...args: any[]) => timedMethod(originalMethod.bind(this), this.logger, ...args);
+        }
+      }
+    }
+
   }
 
   /**

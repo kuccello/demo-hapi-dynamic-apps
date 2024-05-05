@@ -3,6 +3,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { AppDefinition } from '../process-manager/types';
 import { Logger } from '../logger/types';
+import { timedMethod } from '../performance/utils';
 
 /**
  * FileManager class for scanning directories and retrieving app definitions.
@@ -15,8 +16,28 @@ export class FileManager {
    * @param rootDir The root directory to scan.
    * @param fileName The name of the configuration file (default: 'wrs.config.yml').
    */
-  constructor(private logger: Logger, rootDir: string, private readonly fileName: string = 'wrs.config.yml') {
+  constructor(private logger: Logger, rootDir: string, private readonly fileName: string = 'wrs.config.yml', enablePerformanceLogging: boolean = true) {
     this.rootDir = rootDir;
+
+    if (enablePerformanceLogging) {
+      const methodsToTime: string[] = [
+        'scanForAppDefinitions',
+        'scanDirectory'
+      ];
+      // const excludeList = [];
+      // const methodsToTime = Object.getOwnPropertyNames(FileManager.prototype)
+      //   .filter(name => typeof (FileManager.prototype as any)[name] === 'function' && name !== 'constructor')
+      //   .filter(name => !excludeList.includes(name));
+
+      // Wrap selected methods with timing
+      for (const methodName of methodsToTime) {
+        const originalMethod = (this as any)[methodName];
+        if (typeof originalMethod === 'function') {
+          (this as any)[methodName] = (...args: any[]) => timedMethod(originalMethod.bind(this), this.logger, ...args);
+        }
+      }
+    }
+
   }
 
   /**
