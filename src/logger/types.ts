@@ -7,25 +7,33 @@ export interface Logger {
    * Logs an error message.
    * @param message - The error message to log.
    */
-  error(message: string): void;
+  error(message: string | string[]): void;
+  error(message: string | string[], tags: string[]): void;
+  error(message: string | string[], tags?: string[]): void
 
   /**
    * Logs a warning message.
    * @param message - The warning message to log.
    */
-  warn(message: string): void;
+  warn(message: string | string[]): void;
+  warn(message: string | string[], tags: string[]): void;
+  warn(message: string | string[], tags?: string[]): void
 
   /**
    * Logs an informational message.
    * @param message - The informational message to log.
    */
-  info(message: string): void;
+  info(message: string | string[]): void;
+  info(message: string | string[], tags: string[]): void;
+  info(message: string | string[], tags?: string[]): void
 
   /**
    * Logs a debug message.
    * @param message - The debug message to log.
    */
-  debug(message: string): void;
+  debug(message: string | string[]): void;
+  debug(message: string | string[], tags: string[]): void;
+  debug(message: string | string[], tags?: string[]): void
 }
 
 /**

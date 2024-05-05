@@ -2,24 +2,38 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { AppDefinition } from '../process-manager/types';
+import { Logger } from '../logger/types';
 
+/**
+ * FileManager class for scanning directories and retrieving app definitions.
+ */
 export class FileManager {
   private rootDir: string;
 
-  constructor(rootDir: string, private readonly fileName: string = 'wrs.config.yml') {
+  /**
+   * Constructs a new FileManager instance.
+   * @param rootDir The root directory to scan.
+   * @param fileName The name of the configuration file (default: 'wrs.config.yml').
+   */
+  constructor(private logger: Logger, rootDir: string, private readonly fileName: string = 'wrs.config.yml') {
     this.rootDir = rootDir;
   }
 
-  public getRootDir(): string {
-    return this.rootDir;
-  }
-
+  /**
+   * Scans the root directory for app definitions.
+   * @returns A map of app definitions.
+   */
   public scanForAppDefinitions(): Map<string, AppDefinition> {
     const appDefinitions = new Map<string, AppDefinition>();
     this.scanDirectory(this.rootDir, appDefinitions);
     return appDefinitions;
   }
 
+  /**
+   * Recursively scans a directory for app definitions.
+   * @param dir The directory to scan.
+   * @param appDefinitions The map to store the app definitions.
+   */
   private scanDirectory(dir: string, appDefinitions: Map<string, AppDefinition>): void {
     const files = fs.readdirSync(dir);
     let packageVersion: string | null = null;

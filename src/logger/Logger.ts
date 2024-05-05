@@ -8,10 +8,10 @@ import type { ConfigurableLogger, LogLevelToggles, ObfuscatingLogger, TaggableLo
 export class ConfigurableWrappedLogger implements ObfuscatingLogger, ConfigurableLogger, TaggableLogger {
   private readonly logState: LogLevelToggles;
   private readonly logPrecedence: LogLevel[] = [
-    LogLevel.ERROR,
-    LogLevel.WARN,
-    LogLevel.INFO,
     LogLevel.DEBUG,
+    LogLevel.INFO,
+    LogLevel.WARN,
+    LogLevel.ERROR,
   ];
   private enableObfuscation: boolean;
 
@@ -24,7 +24,7 @@ export class ConfigurableWrappedLogger implements ObfuscatingLogger, Configurabl
   constructor(
     private logger: Logger,
     private logLevel: LogLevel = LogLevel.INFO,
-    private readonly obfuscator: SensitiveDataObfuscator,
+    private readonly obfuscator?: SensitiveDataObfuscator,
     private readonly alwaysTagWith: string[] = [],
     enableObfuscation: boolean = true,
   ) {
@@ -34,6 +34,7 @@ export class ConfigurableWrappedLogger implements ObfuscatingLogger, Configurabl
       [LogLevel.INFO]: true,
       [LogLevel.DEBUG]: false,
     };
+    this.setLogLevel(logLevel);
     this.enableObfuscation = enableObfuscation;
     this.obfuscator = new SensitiveDataObfuscator();
   }
@@ -114,50 +115,70 @@ export class ConfigurableWrappedLogger implements ObfuscatingLogger, Configurabl
     });
   }
 
+  private extractLogLevels(arr: string[]): string[] {
+    const logLevels = ['debug', 'info', 'warn', 'error'];
+    return arr.filter(item => logLevels.includes(item));
+  }
+
+  private filterArray(baseArray: string[], filterArray: string[]): string[] {
+    return baseArray.filter(item => !filterArray.includes(item));
+  }
+
+  private inverseFilterArray(baseArray: string[], filterArray: string[]): string[] {
+    return baseArray.filter(item => filterArray.includes(item));
+  }
+
   /**
    * Prepares a message for logging.
    * @param message The message to prepare.
    * @param tags The tags to include in the message.
    * @returns The prepared message.
    */
-  private prepareMessage(message: string, tags?: string[]): string {
-    let formattedMessage = message;
+  private prepareMessage(message: string|string[], tags?: string[]): string {
+    // console.error("@@@@@@@",tags, message)
+    let formattedMessage = Array.isArray(message) ? message.join(' ') : message;
     const concatTags = tags ? [...tags, ...this.alwaysTagWith] : this.alwaysTagWith;
     if (concatTags && concatTags.length > 0) {
-      formattedMessage = `[${concatTags.join(', ')}] ${message}`;
+      // formattedMessage = `[${concatTags.join(', ')}] ${message}`;
+      const logLevels = this.inverseFilterArray(concatTags, ['debug', 'info', 'warn', 'error']);
+      formattedMessage = JSON.stringify({type: logLevels, tags: this.filterArray(concatTags, logLevels), message: formattedMessage});
+
     }
-    return this.enableObfuscation ? this.obfuscator.obfuscate(formattedMessage) : formattedMessage;
+    return this.enableObfuscation && this.obfuscator ? this.obfuscator.obfuscate(formattedMessage) : formattedMessage;
   }
 
-  debug(message: string): void;
-  debug(message: string, tags: string[]): void;
-  debug(message: string, tags?: string[]): void {
+  debug(message: string | string[]): void;
+  debug(message: string | string[], tags: string[]): void;
+  debug(message: string | string[], tags?: string[]): void {
     if (this.logState[LogLevel.DEBUG]) {
-      this.logger.debug(this.prepareMessage(message, tags));
+      this.logger.debug(this.prepareMessage(message, ['debug', ...tags??[]]));
     }
   }
 
-  error(message: string): void;
-  error(message: string, tags: string[]): void;
-  error(message: string, tags?: string[]): void {
+  error(message: string | string[]): void;
+  error(message: string | string[], tags: string[]): void;
+  error(message: string | string[], tags?: string[]): void {
     if (this.logState[LogLevel.ERROR]) {
-      this.logger.error(this.prepareMessage(message, tags));
+      this.logger.error(this.prepareMessage(message, ['error', ...tags??[]]));
     }
   }
 
-  warn(message: string): void;
-  warn(message: string, tags: string[]): void;
-  warn(message: string, tags?: string[]): void {
+  warn(message: string | string[]): void;
+  warn(message: string | string[], tags: string[]): void;
+  warn(message: string | string[], tags?: string[]): void {
     if (this.logState[LogLevel.WARN]) {
-      this.logger.warn(this.prepareMessage(message, tags));
+      this.logger.warn(this.prepareMessage(message, ['warn', ...tags??[]]));
     }
   }
 
-  info(message: string): void;
-  info(message: string, tags: string[]): void;
-  info(message: string, tags?: string[]): void {
+  info(message: string | string[]): void;
+  info(message: string | string[], tags: string[]): void;
+  info(message: string | string[], tags?: string[]): void {
     if (this.logState[LogLevel.INFO]) {
-      this.logger.info(this.prepareMessage(message, tags));
+      // console.info('^^^^^ info', message, tags, this.alwaysTagWith, 'info state is', this.logState[LogLevel.INFO], 'prepared: ', this.prepareMessage(message, ['info', ...tags??[]]));
+      const prepared = this.prepareMessage(message, ['info', ...(tags??[])])
+      // console.error('>>> Info tags:',['info', ...(tags??[])], "prepared: ", prepared)
+      this.logger.info(prepared);
     }
   }
 }

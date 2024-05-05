@@ -7,6 +7,7 @@
     "demo:build": "sh ./assets/prepare-apps.sh",
     "demo:start:isolated": "PORT=10000 node ./assets/demo-app/.next/standalone/server.js",
     "dev:start": "ts-node src/server.ts",
+    "dev:start-main": "ts-node src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

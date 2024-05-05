@@ -1,4 +1,5 @@
 import net from 'net';
+import { Logger } from '../logger/types';
 
 /**
  * Represents a PortScanner that scans for open ports within a specified range.
@@ -18,7 +19,7 @@ export class PortScanner {
    * @param startPort The starting port number of the scan range.
    * @param endPort The ending port number of the scan range.
    */
-  constructor(startPort: number, endPort: number) {
+  constructor(private logger: Logger, startPort: number, endPort: number) {
     this.startPort = startPort;
     this.endPort = endPort;
   }
@@ -51,15 +52,16 @@ export class PortScanner {
    */
   public async scanForOpenPorts(): Promise<number[]> {
     const openPorts: number[] = [];
-
+    this.logger.info(`Scanning for open ports between ${this.startPort} and ${this.endPort}...`, ['port-scanner'])
     for (let port = this.startPort; port <= this.endPort; port++) {
-      console.log(`Checking port ${port}...`);
+      this.logger.debug(`Checking port ${port}...`, ['port-scanner']);
       const isOpen = await this.checkPortIsAvailable(port);
       if (isOpen) {
-        console.log(`Port ${port} is open`);
+        this.logger.debug(`Port ${port} is open`, ['port-scanner']);
         openPorts.push(port);
       }
     }
+    this.logger.info(`Found ${openPorts.length} open ports.`, ['port-scanner']);
 
     return openPorts;
   }

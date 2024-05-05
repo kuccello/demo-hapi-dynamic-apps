@@ -1,4 +1,5 @@
 import { FileManager } from "../file-manager/FileManager";
+import { Logger } from "../logger/types";
 import { PortScanner } from "../port-scanner/PortScanner";
 import { AppDefinition } from "../process-manager/types";
 
@@ -14,7 +15,7 @@ export class AppManager {
    * @param fileManager The FileManager instance used for managing files.
    * @param portScanner The PortScanner instance used for scanning open ports.
    */
-  constructor(fileManager: FileManager, portScanner: PortScanner) {
+  constructor(private logger: Logger, fileManager: FileManager, portScanner: PortScanner) {
     this.fileManager = fileManager;
     this.portScanner = portScanner;
   }
