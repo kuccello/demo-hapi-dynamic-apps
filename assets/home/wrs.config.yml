@@ -1,0 +1,4 @@
+wrs: 1
+application:
+  path: ""
+  script: "./.next/standalone/server.js"

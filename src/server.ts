@@ -6,35 +6,39 @@ import type {
   AppDefinition
 } from "./process-manager/types";
 import * as pmUtils from "./process-manager/utils";
+import { FileManager } from "./file-manager/FileManager";
+import path from "path";
+import { PortScanner } from "./port-scanner/PortScanner";
+import { AppManager } from "./app-manager/AppManager";
 
 // Define your applications
-const apps: AppDefinition[] = [
-  {
-    name: "@ck/error-page@v0.1.0",
-    script: "./assets/error-page/.next/standalone/server.js",
-    port: 9999,
-    path: "/error-page",
-  },
-  {
-    name: "@ck/home@v0.1.0",
-    script: "./assets/home/.next/standalone/server.js",
-    port: 10000,
-    path: "",
-  },
-  {
-    name: "@ck/demo-app@v0.1.0",
-    script: "./assets/demo-app/.next/standalone/server.js",
-    port: 10001,
-    path: "/demo-app",
-  },
-  {
-    name: "@ck/demo-app-2@v0.1.0",
-    script: "./assets/demo-app-2/.next/standalone/server.js",
-    port: 10002,
-    path: "/demo-app-2",
-  },
-  // add more applications as needed
-];
+// const apps: AppDefinition[] = [
+//   {
+//     name: "@ck/error-page@v0.1.0",
+//     script: "./assets/error-page/.next/standalone/server.js",
+//     port: 9999,
+//     path: "/error-page",
+//   },
+//   {
+//     name: "@ck/home@v0.1.0",
+//     script: "./assets/home/.next/standalone/server.js",
+//     port: 10000,
+//     path: "",
+//   },
+//   {
+//     name: "@ck/demo-app@v0.1.0",
+//     script: "./assets/demo-app/.next/standalone/server.js",
+//     port: 10001,
+//     path: "/demo-app",
+//   },
+//   {
+//     name: "@ck/demo-app-2@v0.1.0",
+//     script: "./assets/demo-app-2/.next/standalone/server.js",
+//     port: 10002,
+//     path: "/demo-app-2",
+//   },
+//   // add more applications as needed
+// ];
 
 function registerApplicationVersion(server: Hapi.Server<Hapi.ServerApplicationState>, newApp: AppDefinition, apps: AppDefinition[]) {
   server.route({
@@ -135,6 +139,11 @@ const init = async () => {
     port: 3000,
     host: "localhost",
   });
+
+  const fileManager = new FileManager(path.resolve(__dirname, "../assets"));
+  const portScanner = new PortScanner(7000, 7100);
+  const appManager = new AppManager(fileManager, portScanner);
+  const apps = await appManager.getAppDefinitions();
 
   // Register the h2o2 plugin
   await server.register(H2o2);
@@ -345,4 +354,3 @@ process.on("unhandledRejection", (err) => {
 });
 
 init();
-
