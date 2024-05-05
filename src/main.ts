@@ -43,5 +43,5 @@ const fileManager = new FileManager(
 );
 const portScanner = new PortScanner(logger, 7000, 7100);
 const appManager = new AppManager(logger, fileManager, portScanner);
-const serverManager = new ServerManager(logger, 3000, 'localhost', portScanner, appManager);
+const serverManager = new ServerManager(logger, 3000, 'localhost', appManager, process.env.EXPOSE_HEALTHCHECK === 'true');
 serverManager.init();
