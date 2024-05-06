@@ -1,6 +1,6 @@
 import net from "net";
-import { Logger } from "../logger/types";
 import { timedMethod } from "../performance/utils";
+import { Logger } from "../../logger";
 
 /**
  * Represents a PortScanner that scans for open ports within a specified range.

@@ -1,4 +1,4 @@
-import { ProcessStatus } from "../process-manager/types";
+import { ProcessStatus } from "../../lib/system";
 
 export type AppStatus = {
   name: string;

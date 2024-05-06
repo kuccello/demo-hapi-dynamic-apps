@@ -1,8 +1,8 @@
-import { FileManager } from "../file-manager/FileManager";
-import { Logger } from "../logger/types";
-import { timedMethod } from "../performance/utils";
-import { PortScanner } from "../port-scanner/PortScanner";
-import { AppDefinition } from "../process-manager/types";
+import { FileManager } from "../../system/file-manager/FileManager";
+import { Logger } from "../../logger/types";
+import { timedMethod } from "../../system/performance/utils";
+import { PortScanner } from "../../system/port-scanner/PortScanner";
+import { AppDefinition } from "../../system/process-manager/types";
 
 /**
  * The AppManager class is responsible for managing the applications in the process manager.

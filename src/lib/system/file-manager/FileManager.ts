@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { AppDefinition } from '../process-manager/types';
-import { Logger } from '../logger/types';
+import { Logger } from '../../logger/types';
 import { timedMethod } from '../performance/utils';
 
 /**

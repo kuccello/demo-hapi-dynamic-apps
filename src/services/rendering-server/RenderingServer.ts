@@ -2,16 +2,20 @@ import pm2 from "pm2";
 import Hapi from "@hapi/hapi";
 import H2o2 from "@hapi/h2o2";
 import { AppStatus } from "./types";
-import { Logger } from "../logger/types";
-import * as pmUtils from "../process-manager/utils";
-import { AppManager } from "../app-manager/AppManager";
-import type { AppDefinition } from "../process-manager/types";
-import { timedMethod } from "../performance/utils";
+import { AppManager, Logger } from "../../lib";
+import {
+  AppDefinition,
+  timedMethod,
+  decomposeAppName,
+  checkForConflicts,
+  isSameAppDefinition,
+  findExistingAppMaybe,
+} from "../../lib/system";
 
 /**
  * Manages the server and its applications.
  */
-export class ServerManager {
+export class RenderingServer {
   private readonly server: Hapi.Server<Hapi.ServerApplicationState>;
 
   constructor(
@@ -30,19 +34,36 @@ export class ServerManager {
     if (enablePerformanceLogging) {
       // Maybe if we want to be selective about which methods to time, we could do something like this:
       const methodsToTime = [
-        'init', 'registerApplicationVersion', 'registerAppHandlerRoute', 'mapUri', 'preMethod',
-        'performHealthCheck', 'healthCheckHandler', 'registerAppHealthCheckRoute', 'performHealthCheck',
-        'registerAppRoute', 'respondWithError', 'respondWithSuccess', 'restartExistingApp',
-        'startAndRegisterNewApp', 'startApp', 'manageApp', 'checkForConflicts', 'logRoutes',
-        'getAppStatuses', 'getAppStatus', 'registerHealthCheckRoute', 'connectAndManageApps'
+        "init",
+        "registerApplicationVersion",
+        "registerAppHandlerRoute",
+        "mapUri",
+        "preMethod",
+        "performHealthCheck",
+        "healthCheckHandler",
+        "registerAppHealthCheckRoute",
+        "performHealthCheck",
+        "registerAppRoute",
+        "respondWithError",
+        "respondWithSuccess",
+        "restartExistingApp",
+        "startAndRegisterNewApp",
+        "startApp",
+        "manageApp",
+        "checkForConflicts",
+        "logRoutes",
+        "getAppStatuses",
+        "getAppStatus",
+        "registerHealthCheckRoute",
+        "connectAndManageApps",
       ];
       // Or maybe even pass in a list of methods to time as a parameter to the constructor?
 
       // const methodsToTime = Object.getOwnPropertyNames(
-      //   ServerManager.prototype
+      //   RenderingServer.prototype
       // ).filter(
       //   (name) =>
-      //     typeof (ServerManager.prototype as any)[name] === "function" &&
+      //     typeof (RenderingServer.prototype as any)[name] === "function" &&
       //     name !== "constructor"
       // );
 
@@ -63,7 +84,7 @@ export class ServerManager {
    * @returns {Promise<void>} A promise that resolves when the server is initialized.
    */
   public async init() {
-    this.logger.info("Initializing server...", ["method:ServerManager#init"]);
+    this.logger.info("Initializing server...", ["method:RenderingServer#init"]);
 
     // Register the h2o2 plugin
     await this.server.register(H2o2);
@@ -75,7 +96,7 @@ export class ServerManager {
 
     await this.server.start();
     this.logger.info(`Server running on ${this.server.info.uri}`, [
-      "method:ServerManager#init",
+      "method:RenderingServer#init",
     ]);
   }
 
@@ -144,7 +165,7 @@ export class ServerManager {
 
     if (version) {
       const versionApp = apps.find(
-        (app) => pmUtils.decomposeAppName(app).version === `${version}`
+        (app) => decomposeAppName(app).version === `${version}`
       );
       if (versionApp) {
         port = versionApp.port;
@@ -175,7 +196,7 @@ export class ServerManager {
     const version = request.query.version;
     if (version) {
       const versionApp = apps.find(
-        (app) => pmUtils.decomposeAppName(app).version === `${version}`
+        (app) => decomposeAppName(app).version === `${version}`
       );
       if (versionApp) {
         app = versionApp;
@@ -183,7 +204,7 @@ export class ServerManager {
     }
     if (!app) {
       this.logger.error(`App ${newApp.name} not found`, [
-        "method:ServerManager#preMethod",
+        "method:RenderingServer#preMethod",
       ]);
       return h.redirect("/error").takeover().code(404);
     }
@@ -201,7 +222,7 @@ export class ServerManager {
       pm2.describe(app.name, (err, processDescription) => {
         if (err) {
           this.logger.error(`${err}`, [
-            "method:ServerManager#performHealthCheck",
+            "method:RenderingServer#performHealthCheck",
           ]);
           reject(err);
         } else {
@@ -245,7 +266,7 @@ export class ServerManager {
     newApp: AppDefinition
   ) {
     this.logger.info(`Health check for app ${newApp.name} requested.`, [
-      "method:ServerManager#healthCheckHandler",
+      "method:RenderingServer#healthCheckHandler",
     ]);
     const appStatus = await this.getAppStatus(newApp);
     return h
@@ -267,7 +288,7 @@ export class ServerManager {
       pm2.connect((err) => {
         if (err) {
           this.logger.error(`${err}`, [
-            "method:ServerManager#connectAndManageApps",
+            "method:RenderingServer#connectAndManageApps",
           ]);
           process.exit(2);
         }
@@ -324,7 +345,7 @@ export class ServerManager {
     this.logRoutes();
     this.checkForConflicts(app, apps);
     this.logger.info(`Registering app ${app.name}`, [
-      "method:ServerManager#manageApp",
+      "method:RenderingServer#manageApp",
     ]);
     this.registerApplicationVersion(app, apps);
   }
@@ -364,7 +385,7 @@ export class ServerManager {
     const routes = this.server.table();
     routes.forEach((route) => {
       this.logger.info(`Path: ${route.path}, Method: ${route.method}`, [
-        "method:ServerManager#logRoutes",
+        "method:RenderingServer#logRoutes",
       ]);
     });
   }
@@ -375,7 +396,7 @@ export class ServerManager {
    * @param apps - The existing apps to compare against.
    */
   private checkForConflicts(app: AppDefinition, apps: AppDefinition[]): void {
-    const conflictsExist = pmUtils.checkForConflicts(
+    const conflictsExist = checkForConflicts(
       app,
       apps.filter((_app: AppDefinition) => _app.name !== app.name)
     );
@@ -383,7 +404,7 @@ export class ServerManager {
     if (conflictsExist) {
       this.logger.error(
         `App ${app.name} conflicts with existing app: ${conflictsExist}`,
-        ["method:ServerManager#checkForConflicts"]
+        ["method:RenderingServer#checkForConflicts"]
       );
     }
   }
@@ -434,7 +455,7 @@ export class ServerManager {
       pm2.describe(app.name, (err, processDescription) => {
         if (err) {
           this.logger.error(`${err}`, [
-            "method:ServerManager#getAppStatus",
+            "method:RenderingServer#getAppStatus",
             `app:${app.name}`,
           ]);
           reject(err);
@@ -462,8 +483,11 @@ export class ServerManager {
       method: "POST",
       path: "/register-app",
       handler: async (request, h) => {
-        const tags = ["method:ServerManager#registerAppRoute"];
-        this.logger.debug(`Registering app...${JSON.stringify(request.payload)}`, tags);
+        const tags = ["method:RenderingServer#registerAppRoute"];
+        this.logger.debug(
+          `Registering app...${JSON.stringify(request.payload)}`,
+          tags
+        );
         const newApp = request.payload as AppDefinition;
         if (!newApp) {
           this.logger.error("Invalid app definition", tags);
@@ -472,7 +496,7 @@ export class ServerManager {
 
         const apps = await this.appManager.getAppDefinitions();
 
-        const conflictsExist = pmUtils.checkForConflicts(newApp, apps);
+        const conflictsExist = checkForConflicts(newApp, apps);
         if (conflictsExist) {
           this.logger.error(
             `App conflicts with existing app: ${conflictsExist}`,
@@ -485,8 +509,8 @@ export class ServerManager {
           );
         }
 
-        const existingApp = pmUtils.findExistingAppMaybe(apps, newApp.name);
-        if (existingApp && pmUtils.isSameAppDefinition(existingApp, newApp)) {
+        const existingApp = findExistingAppMaybe(apps, newApp.name);
+        if (existingApp && isSameAppDefinition(existingApp, newApp)) {
           return this.restartExistingApp(h, existingApp);
         }
 
@@ -606,7 +630,7 @@ export class ServerManager {
           if (err) {
             this.logger.error(`${err}`, [
               `app:${newApp.name}`,
-              "method:ServerManager#startAndRegisterNewApp",
+              "method:RenderingServer#startAndRegisterNewApp",
               "pm2",
               "start",
             ]);
@@ -614,7 +638,7 @@ export class ServerManager {
           }
           this.logger.debug(
             `App Successfully started! Registering new app ${newApp.name}`,
-            ["method:ServerManager#startAndRegisterNewApp", "pm2", "start"]
+            ["method:RenderingServer#startAndRegisterNewApp", "pm2", "start"]
           );
           this.registerApplicationVersion(newApp, apps);
           this.logRoutes();

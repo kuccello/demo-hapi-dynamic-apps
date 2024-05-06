@@ -6,15 +6,16 @@
   "scripts": {
     "demo:build": "sh ./assets/prepare-apps.sh",
     "demo:start:isolated": "PORT=10000 node ./assets/demo-app/.next/standalone/server.js",
-    "dev:start": "ts-node src/main.ts",
-    "dev:start:notification-server": "ts-node src/notification-server/main.ts",
-    "dev:start:health-exposed": "EXPOSE_HEALTHCHECK=true ts-node src/main.ts",
+    "start:rs": "ts-node src/services/rendering-server/main.ts",
+    "start:rse": "EXPOSE_HEALTHCHECK=true ts-node src/services/rendering-server/main.ts",
+    "start:ns": "ts-node src/services/notification-server/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@creditkarma/dynamic-config": "^1.1.0",
     "@hapi/h2o2": "^10.0.4",
     "@hapi/hapi": "^21.3.9",
     "extract-zip": "^2.0.1",

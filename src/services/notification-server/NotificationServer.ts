@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import unzipper from "unzipper";
 import extract from 'extract-zip';
-import { Logger } from "../logger/types";
+import { Logger } from "../../lib";
 
 export class NotificationServer {
   private server: Hapi.Server;
